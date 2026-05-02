@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Golf Swing Analyzer</title>
+  <style>
+    :root {
+      --bg-primary: #0f0f0f;
+      --bg-secondary: #1a1a1a;
+      --bg-tertiary: #252525;
+      --text-primary: #e8e8e8;
+      --text-secondary: #a0a0a0;
+      --text-tertiary: #707070;
+      --border: #2a2a2a;
+      --accent: #639922;
+      --accent-hover: #7ab32a;
+      --success: #4a9d5f;
+      --warning: #d97706;
+      --danger: #c53030;
+      --info: #2563eb;
+      --radius-sm: 4px;
+      --radius-md: 6px;
+      --radius-lg: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      padding: 2rem 1rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 { font-size: 28px; font-weight: 600; margin-bottom: 0.5rem; }
+    h2 { font-size: 20px; font-weight: 500; margin-bottom: 1rem; }
+    h3 { font-size: 16px; font-weight: 500; margin-bottom: 0.5rem; }
+    p { margin-bottom: 0.75rem; }
+    
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    button:hover:not(:disabled) { background: var(--accent-hover); }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    select {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+    }
+    
+    .card {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .card-header {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+    }
+    
+    .status-bar {
+      background: var(--bg-secondary);
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-tertiary);
+    }
+    .status-dot.loading { background: var(--warning); }
+    .status-dot.ready { background: var(--success); }
+    .status-dot.error { background: var(--danger); }
+    
+    .steps {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .step-pill {
+      padding: 6px 12px;
+      background: var(--bg-secondary);
+      color: var(--text-tertiary);
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-family: 'Courier New', monospace;
+    }
+    .step-pill.active { background: #1e40af; color: #93c5fd; }
+    .step-pill.done { background: #166534; color: #86efac; }
+    
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .grid-auto { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    
+    .option-btn {
+      text-align: left;
+      padding: 14px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .option-btn:hover { border-color: var(--accent); }
+    .option-btn.active {
+      border-color: var(--info);
+      background: #1e3a8a;
+      color: #93c5fd;
+    }
+    .option-btn .title { font-weight: 500; margin-bottom: 4px; }
+    .option-btn .desc { font-size: 12px; color: var(--text-secondary); }
+    
+    .metric-tile {
+      background: var(--bg-tertiary);
+      padding: 14px;
+      border-radius: var(--radius-md);
+    }
+    .metric-tile.suspect { background: #7c2d12; }
+    .metric-tile .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    .metric-tile.suspect .label { color: #fbbf24; }
+    .metric-tile .value {
+      font-size: 22px;
+      font-weight: 600;
+      font-family: 'Courier New', monospace;
+    }
+    .metric-tile .unit {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      font-family: 'Courier New', monospace;
+    }
+    
+    .progress-bar {
+      height: 6px;
+      background: var(--bg-tertiary);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--info);
+      transition: width 0.2s;
+    }
+    
+    .key-frame-thumb {
+      background: var(--bg-tertiary);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .key-frame-thumb canvas { width: 100%; display: block; }
+    .key-frame-thumb .label {
+      padding: 8px;
+      font-size: 11px;
+      font-family: 'Courier New', monospace;
+      color: var(--text-secondary);
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
+    
+    .alert {
+      padding: 12px;
+      border-radius: var(--radius-md);
+      margin-bottom: 1rem;
+      font-size: 13px;
+    }
+    .alert-info { background: #1e3a8a; color: #93c5fd; }
+    .alert-warning { background: #7c2d12; color: #fbbf24; }
+    .alert-danger { background: #7f1d1d; color: #fca5a5; }
+    .alert-success { background: #14532d; color: #86efac; }
+    
+    .feedback-section {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .feedback-grade {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: var(--radius-md);
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      margin-left: 10px;
+    }
+    .grade-good { background: #14532d; color: #86efac; }
+    .grade-ok { background: #7c2d12; color: #fbbf24; }
+    .grade-bad { background: #7f1d1d; color: #fca5a5; }
+    
+    video { max-width: 100%; border-radius: var(--radius-md); background: #000; }
+    canvas { max-width: 100%; display: block; }
+    
+    #analysis-canvas { background: #000; border-radius: var(--radius-md); }
+    #motion-canvas { background: var(--bg-tertiary); border-radius: var(--radius-md); }
+    
+    .hidden { display: none !important; }
+    
+    @media (max-width: 768px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      body { padding: 1rem 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header style="margin-bottom: 2rem;">
+  <h1>Golf Swing Analyzer</h1>
+  <p style="color: var(--text-secondary); font-size: 14px;">Pose detection + biomechanics analysis with AI coaching feedback.</p>
+</header>
+
+<div class="status-bar">
+  <span class="status-dot" id="status-dot"></span>
+  <span id="status-text">Initializing...</span>
+</div>
+
+<div class="steps">
+  <span class="step-pill active" data-step="1">1 · Setup</span>
+  <span class="step-pill" data-step="2">2 · Capture</span>
+  <span class="step-pill" data-step="3">3 · Analyze</span>
+  <span class="step-pill" data-step="4">4 · Feedback</span>
+</div>
+
+<!-- STEP 1 -->
+<section id="step-1">
+  <div class="card">
+    <div class="card-header">Camera angle</div>
+    <div class="alert alert-info" style="margin-bottom: 1rem; font-size: 12px;">
+      <strong>Critical:</strong> Camera angle affects which metrics are reliable. Choose the angle that matches your video.
+    </div>
+    <div class="grid-2">
+      <button class="option-btn active" data-angle="down-the-line">
+        <div class="title">Down-the-line (DTL)</div>
+        <div class="desc">Camera behind you, looking along target line. You stand facing away/toward camera.</div>
+        <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 6px;">✓ Swing plane, club path<br>✗ Body rotation unreliable</div>
+      </button>
+      <button class="option-btn" data-angle="face-on">
+        <div class="title">Face-on (side view)</div>
+        <div class="desc">Camera to your left or right (90° from target). You stand sideways to camera showing profile.</div>
+        <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 6px;">✓ Hip/shoulder rotation, sway<br>✗ Swing plane unreliable</div>
+      </button>
+    </div>
+    <div class="alert alert-warning" style="margin-top: 1rem; font-size: 11px;">
+      ⚠️ If your camera is in front of you (frontal view), neither angle applies — rotation metrics will be inaccurate.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Capture mode</div>
+    <div style="display: grid; gap: 10px;">
+      <button class="option-btn" data-mode="standard" data-fps="30">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="title">Standard recording</span>
+          <span style="font-family: 'Courier New', monospace; font-size: 11px; color: var(--text-tertiary);">30 fps</span>
+        </div>
+        <div class="desc">Default phone camera, real-time playback.</div>
+      </button>
+      <button class="option-btn" data-mode="high-fps" data-fps="60">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="title">High frame rate <span style="background: #14532d; color: #86efac; padding: 2px 6px; border-radius: 4px; font-size: 10px;">RECOMMENDED</span></span>
+          <span style="font-family: 'Courier New', monospace; font-size: 11px; color: var(--text-tertiary);">60 fps</span>
+        </div>
+        <div class="desc">60fps recording, real-time playback.</div>
+      </button>
+      <button class="option-btn" data-mode="slow-mo" data-fps="240">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="title">Slow-motion mode</span>
+          <span style="font-family: 'Courier New', monospace; font-size: 11px; color: var(--text-tertiary);">120–240 fps capture</span>
+        </div>
+        <div class="desc">Tempo corrected by capture-fps factor.</div>
+      </button>
+    </div>
+
+    <div id="fps-correction" class="hidden" style="margin-top: 1rem; padding: 12px; background: #7c2d12; border-radius: var(--radius-md);">
+      <label style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px; color: #fbbf24;">Actual capture fps</label>
+      <p style="font-size: 12px; margin-bottom: 8px; color: #fbbf24;">Check your camera app settings. iPhone slow-mo = 120 or 240.</p>
+      <select id="capture-fps">
+        <option value="120">120 fps</option>
+        <option value="240" selected>240 fps</option>
+        <option value="480">480 fps</option>
+        <option value="960">960 fps</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Club &amp; handedness</div>
+    <div class="grid-2">
+      <div>
+        <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 6px;">Club</label>
+        <select id="club-select" style="width: 100%;">
+          <option value="driver">Driver</option>
+          <option value="wood">Fairway wood / hybrid</option>
+          <option value="long-iron">Long iron (3–5)</option>
+          <option value="mid-iron" selected>Mid iron (6–8)</option>
+          <option value="wedge">Wedge / short iron</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size: 12px; color: var(--text-secondary); display: block; margin-bottom: 6px;">Handedness</label>
+        <select id="hand-select" style="width: 100%;">
+          <option value="right" selected>Right-handed</option>
+          <option value="left">Left-handed</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <button id="goto-capture" disabled style="width: 100%;">Continue to capture</button>
+</section>
+
+<!-- STEP 2 -->
+<section id="step-2" class="hidden">
+  <div class="card">
+    <div id="capture-mode-display" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 1rem;"></div>
+    
+    <!-- Two capture options: Upload or Record -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1rem;">
+      <button id="option-upload" class="option-btn active" style="padding: 12px;">
+        <div class="title">Upload video</div>
+        <div class="desc" style="font-size: 11px;">Select from gallery</div>
+      </button>
+      <button id="option-record" class="option-btn" style="padding: 12px;">
+        <div class="title">Record with camera</div>
+        <div class="desc" style="font-size: 11px;">Live alignment guide</div>
+      </button>
+    </div>
+    
+    <!-- Upload mode -->
+    <div id="upload-mode">
+      <input type="file" id="video-file" accept="video/*" style="display: none;" />
+      <button id="pick-file" style="width: 100%; padding: 24px; background: var(--bg-tertiary); border: 2px dashed var(--border);">
+        <div style="font-weight: 500; margin-bottom: 4px;">Click to upload swing video</div>
+        <div style="font-size: 12px; color: var(--text-secondary);">Pre-swing waiting time is fine — auto-detected.</div>
+      </button>
+    </div>
+    
+    <!-- Record mode -->
+    <div id="record-mode" class="hidden">
+      <div class="alert alert-info" style="margin-bottom: 1rem; font-size: 12px;">
+        <strong>Position yourself:</strong> Stand so your silhouette matches the green guide. Camera will auto-detect when you're properly aligned.
+      </div>
+      
+      <div style="position: relative; background: #000; border-radius: var(--radius-md); overflow: hidden; margin-bottom: 1rem;">
+        <video id="camera-preview" autoplay playsinline muted style="width: 100%; display: block; transform: scaleX(-1);"></video>
+        <canvas id="alignment-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></canvas>
+      </div>
+      
+      <div id="alignment-status" style="margin-bottom: 1rem; padding: 10px; background: var(--bg-tertiary); border-radius: var(--radius-md); font-size: 12px;">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+          <div id="status-head"><span style="opacity: 0.5;">⚪</span> Head visible</div>
+          <div id="status-feet"><span style="opacity: 0.5;">⚪</span> Feet visible</div>
+          <div id="status-distance"><span style="opacity: 0.5;">⚪</span> Distance OK</div>
+        </div>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <button id="start-camera" style="background: var(--success);">Start Camera</button>
+        <button id="start-recording" disabled style="background: var(--danger);">● Record (10s)</button>
+      </div>
+      
+      <div id="recording-progress" class="hidden" style="margin-top: 1rem;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="progress-bar" style="flex: 1;">
+            <div class="progress-bar-fill" id="record-progress" style="background: var(--danger);"></div>
+          </div>
+          <span id="record-timer" style="font-family: 'Courier New', monospace; font-size: 14px; font-weight: 500; color: var(--danger);">10s</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="video-preview" class="card hidden">
+    <div class="card-header">Loaded video</div>
+    <video id="loaded-video" controls playsinline style="max-width: 400px; max-height: 300px;"></video>
+    <div id="video-meta" class="grid-3" style="margin-top: 1rem;"></div>
+  </div>
+
+  <div style="display: flex; gap: 10px;">
+    <button id="back-to-setup">Back</button>
+    <button id="goto-analyze" disabled style="flex: 1;">Run analysis</button>
+  </div>
+</section>
+
+<!-- STEP 3 -->
+<section id="step-3" class="hidden">
+  <div class="card">
+    <div class="card-header">Pose detection</div>
+    <div style="max-width: 600px;">
+      <canvas id="analysis-canvas"></canvas>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px; margin-top: 12px;">
+      <div class="progress-bar" style="flex: 1;">
+        <div class="progress-bar-fill" id="progress-bar"></div>
+      </div>
+      <span id="progress-text" style="font-family: 'Courier New', monospace; font-size: 12px; color: var(--text-secondary); min-width: 80px; text-align: right;">0 / 0</span>
+    </div>
+    <div id="analysis-error" class="alert alert-danger hidden"></div>
+  </div>
+
+  <div id="motion-timeline" class="card hidden">
+    <div class="card-header">Motion timeline</div>
+    <canvas id="motion-canvas" width="800" height="100"></canvas>
+    <div id="motion-legend" style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; font-size: 11px; font-family: 'Courier New', monospace; color: var(--text-secondary);"></div>
+    
+    <div id="manual-override" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <span style="font-size: 12px; font-weight: 500;">Manual key-frame override</span>
+        <button id="toggle-manual" style="padding: 4px 10px; font-size: 11px;">Enable</button>
+      </div>
+      
+      <div id="manual-controls" class="hidden">
+        <div class="alert alert-info" style="margin-bottom: 0.75rem; font-size: 12px;">
+          Use the sliders below to scrub to the exact frame for each position. The preview updates as you move each slider.
+        </div>
+        
+        <div style="margin-bottom: 1rem;">
+          <video id="scrub-video" playsinline style="max-width: 400px; max-height: 300px; background: #000; border-radius: var(--radius-md); display: block;"></video>
+        </div>
+        
+        <div style="display: grid; gap: 1rem;">
+          <!-- Setup slider -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label style="font-size: 12px; font-weight: 500;">Setup</label>
+              <span id="setup-time" style="font-family: 'Courier New', monospace; font-size: 11px; color: var(--text-secondary);">0.00s</span>
+            </div>
+            <input type="range" id="slider-setup" min="0" max="100" value="0" step="0.1" style="width: 100%;">
+          </div>
+          
+          <!-- Top of backswing slider -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label style="font-size: 12px; font-weight: 500;">Top of Backswing</label>
+              <span id="top-time" style="font-family: 'Courier New', monospace; font-size: 11px; color: var(--text-secondary);">0.00s</span>
+            </div>
+            <input type="range" id="slider-top" min="0" max="100" value="0" step="0.1" style="width: 100%;">
+          </div>
+          
+          <!-- Impact slider -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label style="font-size: 12px; font-weight: 500;">Impact</label>
+              <span id="impact-time" style="font-family: 'Courier New', monospace; font-size: 11px; color: var(--text-secondary);">0.00s</span>
+            </div>
+            <input type="range" id="slider-impact" min="0" max="100" value="0" step="0.1" style="width: 100%;">
+          </div>
+          
+          <!-- Follow-through slider -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label style="font-size: 12px; font-weight: 500;">Follow-through</label>
+              <span id="follow-time" style="font-family: 'Courier New', monospace; font-size: 11px; color: var(--text-secondary);">0.00s</span>
+            </div>
+            <input type="range" id="slider-follow" min="0" max="100" value="0" step="0.1" style="width: 100%;">
+          </div>
+        </div>
+        
+        <button id="apply-manual" style="width: 100%; margin-top: 1rem;">Apply Manual Key Frames</button>
+        
+        <div id="manual-status" style="margin-top: 0.75rem; font-size: 11px; font-family: 'Courier New', monospace; color: var(--text-secondary);"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="key-frames" class="card hidden">
+    <div class="card-header">Key positions detected</div>
+    <div id="key-frames-grid" class="grid-auto"></div>
+  </div>
+
+  <div id="metrics-card" class="card hidden">
+    <div class="card-header">Measured metrics</div>
+    <div id="metrics-grid" class="grid-auto"></div>
+    <p id="tempo-note" style="font-size: 11px; color: var(--text-tertiary); margin-top: 12px;"></p>
+    <div id="sanity-warnings" class="hidden"></div>
+    
+    <!-- Debug panel -->
+    <details style="margin-top: 1rem; padding: 12px; background: var(--bg-tertiary); border-radius: var(--radius-md);">
+      <summary style="cursor: pointer; font-size: 12px; font-weight: 500; color: var(--text-secondary);">🔍 Debug: Keypoint quality & raw data</summary>
+      <div id="debug-panel" style="margin-top: 12px; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.8; color: var(--text-secondary);"></div>
+    </details>
+  </div>
+
+  <div style="display: flex; gap: 10px;">
+    <button id="back-to-capture">Back</button>
+    <button id="goto-feedback" disabled style="flex: 1;">Get coaching feedback</button>
+  </div>
+</section>
+
+<!-- STEP 4 -->
+<section id="step-4" class="hidden">
+  <div id="feedback-loading" class="card" style="text-align: center; padding: 3rem;">
+    <div style="font-size: 14px; color: var(--text-secondary);">Generating coaching feedback…</div>
+  </div>
+  <div id="feedback-content" class="hidden"></div>
+  <button id="restart" style="width: 100%; margin-top: 1rem;">Analyze another swing</button>
+</section>
+
+<script type="module">
+import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+const state = {
+  cameraAngle: 'down-the-line',
+  captureMode: null,
+  nominalFps: 30,
+  captureFps: 30,
+  slowMoFactor: 1,
+  club: 'mid-iron',
+  handedness: 'right',
+  videoFile: null,
+  videoUrl: null,
+  duration: 0,
+  width: 0,
+  height: 0,
+  poseFrames: [],
+  keyFrames: {},
+  metrics: {},
+  sanityIssues: [],
+  landmarker: null,
+  modelReady: false
+};
+
+const KP = {
+  nose: 0,
+  leftShoulder: 11, rightShoulder: 12,
+  leftElbow: 13, rightElbow: 14,
+  leftWrist: 15, rightWrist: 16,
+  leftHip: 23, rightHip: 24,
+  leftKnee: 25, rightKnee: 26,
+  leftAnkle: 27, rightAnkle: 28
+};
+
+function setStatus(text, type) {
+  document.getElementById('status-text').textContent = text;
+  const dot = document.getElementById('status-dot');
+  dot.className = 'status-dot';
+  if (type) dot.classList.add(type);
+}
+
+async function initModel() {
+  try {
+    setStatus('Loading MediaPipe WASM runtime...', 'loading');
+    const vision = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+    );
+    setStatus('Loading pose landmarker model...', 'loading');
+    state.landmarker = await PoseLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+        delegate: "GPU"
+      },
+      runningMode: "VIDEO",
+      numPoses: 1
+    });
+    setStatus('Pose landmarker ready', 'ready');
+    state.modelReady = true;
+  } catch (err) {
+    console.error('Model init error:', err);
+    setStatus('Model load failed: ' + err.message, 'error');
+  }
+}
+initModel();
+
+function showStep(n) {
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('step-' + i).classList.toggle('hidden', i !== n);
+  }
+  document.querySelectorAll('.step-pill').forEach(p => {
+    const s = +p.dataset.step;
+    p.classList.toggle('active', s === n);
+    p.classList.toggle('done', s < n);
+  });
+}
+
+// STEP 1
+document.querySelectorAll('[data-angle]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-angle]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.cameraAngle = btn.dataset.angle;
+  });
+});
+
+document.querySelectorAll('[data-mode]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.captureMode = btn.dataset.mode;
+    state.nominalFps = state.captureMode === 'slow-mo' ? 30 : parseInt(btn.dataset.fps);
+    state.captureFps = parseInt(btn.dataset.fps);
+    state.slowMoFactor = state.captureFps / state.nominalFps;
+    document.getElementById('fps-correction').classList.toggle('hidden', state.captureMode !== 'slow-mo');
+    document.getElementById('goto-capture').disabled = false;
+  });
+});
+
+document.getElementById('capture-fps').addEventListener('change', e => {
+  state.captureFps = parseInt(e.target.value);
+  state.slowMoFactor = state.captureFps / state.nominalFps;
+});
+document.getElementById('club-select').addEventListener('change', e => state.club = e.target.value);
+document.getElementById('hand-select').addEventListener('change', e => state.handedness = e.target.value);
+document.getElementById('goto-capture').addEventListener('click', () => {
+  const modeText = {
+    'standard': 'Standard 30fps recording.',
+    'high-fps': 'High frame rate 60fps.',
+    'slow-mo': `Slow-mo ${state.captureFps}fps capture, tempo ÷${state.slowMoFactor}.`
+  };
+  document.getElementById('capture-mode-display').textContent = modeText[state.captureMode];
+  showStep(2);
+});
+
+// STEP 2
+document.getElementById('pick-file').addEventListener('click', () => document.getElementById('video-file').click());
+document.getElementById('video-file').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (f) loadVideo(f);
+});
+
+function loadVideo(file) {
+  if (state.videoUrl) URL.revokeObjectURL(state.videoUrl);
+  state.videoFile = file;
+  state.videoUrl = URL.createObjectURL(file);
+  const v = document.getElementById('loaded-video');
+  v.src = state.videoUrl;
+  v.onloadedmetadata = () => {
+    state.duration = v.duration;
+    state.width = v.videoWidth;
+    state.height = v.videoHeight;
+    const realDuration = state.duration / state.slowMoFactor;
+    document.getElementById('video-meta').innerHTML = `
+      <div class="metric-tile"><div class="label">File duration</div><div class="value">${state.duration.toFixed(1)}<span class="unit">s</span></div></div>
+      <div class="metric-tile"><div class="label">Real-time</div><div class="value">${realDuration.toFixed(2)}<span class="unit">s</span></div></div>
+      <div class="metric-tile"><div class="label">Resolution</div><div class="value" style="font-size: 16px;">${state.width}×${state.height}</div></div>
+    `;
+    document.getElementById('video-preview').classList.remove('hidden');
+    document.getElementById('goto-analyze').disabled = false;
+  };
+}
+
+document.getElementById('back-to-setup').addEventListener('click', () => showStep(1));
+document.getElementById('goto-analyze').addEventListener('click', async () => {
+  showStep(3);
+  if (!state.modelReady) {
+    const start = Date.now();
+    while (!state.modelReady && Date.now() - start < 30000) await new Promise(r => setTimeout(r, 200));
+    if (!state.modelReady) {
+      document.getElementById('analysis-error').textContent = 'Model never loaded. Check status bar.';
+      document.getElementById('analysis-error').classList.remove('hidden');
+      return;
+    }
+  }
+  runAnalysis().catch(e => {
+    document.getElementById('analysis-error').textContent = 'Analysis failed: ' + e.message;
+    document.getElementById('analysis-error').classList.remove('hidden');
+    console.error(e);
+  });
+});
+
+// CAMERA RECORDING FUNCTIONALITY
+let cameraStream = null;
+let mediaRecorder = null;
+let recordedChunks = [];
+let alignmentCheckInterval = null;
+
+document.getElementById('option-upload').addEventListener('click', () => {
+  document.getElementById('option-upload').classList.add('active');
+  document.getElementById('option-record').classList.remove('active');
+  document.getElementById('upload-mode').classList.remove('hidden');
+  document.getElementById('record-mode').classList.add('hidden');
+  stopCamera();
+});
+
+document.getElementById('option-record').addEventListener('click', () => {
+  document.getElementById('option-record').classList.add('active');
+  document.getElementById('option-upload').classList.remove('active');
+  document.getElementById('record-mode').classList.remove('hidden');
+  document.getElementById('upload-mode').classList.add('hidden');
+});
+
+document.getElementById('start-camera').addEventListener('click', async () => {
+  try {
+    // Request camera with specific constraints for best pose detection
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        facingMode: state.cameraAngle === 'face-on' ? 'user' : 'environment'
+      },
+      audio: false
+    });
+    
+    const video = document.getElementById('camera-preview');
+    video.srcObject = cameraStream;
+    
+    // Setup alignment canvas
+    const canvas = document.getElementById('alignment-canvas');
+    video.onloadedmetadata = () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      startAlignmentCheck();
+    };
+    
+    document.getElementById('start-camera').disabled = true;
+    document.getElementById('start-camera').textContent = 'Camera Active';
+  } catch (err) {
+    alert('Camera access denied or unavailable: ' + err.message);
+  }
+});
+
+function startAlignmentCheck() {
+  const video = document.getElementById('camera-preview');
+  const canvas = document.getElementById('alignment-canvas');
+  const ctx = canvas.getContext('2d');
+  
+  // Draw alignment guide
+  function drawGuide() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw silhouette guide for face-on position
+    const centerX = canvas.width / 2;
+    const baseY = canvas.height * 0.85; // feet at 85% down
+    const headY = canvas.height * 0.15; // head at 15% down
+    const shoulderW = canvas.width * 0.15;
+    
+    ctx.strokeStyle = 'rgba(99, 153, 34, 0.5)';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([10, 5]);
+    
+    // Head circle
+    ctx.beginPath();
+    ctx.arc(centerX, headY, 30, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Torso
+    ctx.beginPath();
+    ctx.moveTo(centerX - shoulderW, headY + 40);
+    ctx.lineTo(centerX + shoulderW, headY + 40);
+    ctx.lineTo(centerX + shoulderW * 0.7, baseY - 100);
+    ctx.lineTo(centerX - shoulderW * 0.7, baseY - 100);
+    ctx.closePath();
+    ctx.stroke();
+    
+    // Legs
+    ctx.beginPath();
+    ctx.moveTo(centerX - shoulderW * 0.3, baseY - 100);
+    ctx.lineTo(centerX - shoulderW * 0.5, baseY);
+    ctx.moveTo(centerX + shoulderW * 0.3, baseY - 100);
+    ctx.lineTo(centerX + shoulderW * 0.5, baseY);
+    ctx.stroke();
+    
+    ctx.setLineDash([]);
+    
+    // Text instruction
+    ctx.fillStyle = 'rgba(99, 153, 34, 0.9)';
+    ctx.font = '16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Stand sideways, align your body with this guide', centerX, 40);
+  }
+  
+  drawGuide();
+  
+  // Check alignment every 500ms
+  alignmentCheckInterval = setInterval(async () => {
+    if (!state.landmarker) return;
+    
+    // Quick pose detection to check alignment
+    const detections = await state.landmarker.detectForVideo(video, Date.now());
+    
+    let headVisible = false, feetVisible = false, distanceOK = false;
+    
+    if (detections.landmarks && detections.landmarks.length > 0) {
+      const lms = detections.landmarks[0];
+      
+      // Check if key points are visible and in frame
+      headVisible = lms[KP.nose] && lms[KP.nose].visibility > 0.5 && lms[KP.nose].y < 0.3;
+      feetVisible = lms[KP.leftAnkle] && lms[KP.rightAnkle] && 
+                    lms[KP.leftAnkle].visibility > 0.5 && lms[KP.rightAnkle].visibility > 0.5 &&
+                    lms[KP.leftAnkle].y > 0.7 && lms[KP.rightAnkle].y > 0.7;
+      
+      // Check distance (shoulder width should be 10-20% of frame width)
+      if (lms[KP.leftShoulder] && lms[KP.rightShoulder]) {
+        const shoulderW = Math.abs(lms[KP.leftShoulder].x - lms[KP.rightShoulder].x);
+        distanceOK = shoulderW > 0.1 && shoulderW < 0.25;
+      }
+    }
+    
+    // Update status indicators
+    document.getElementById('status-head').innerHTML = (headVisible ? '<span style="color: var(--success);">✓</span>' : '<span style="opacity: 0.5;">⚪</span>') + ' Head visible';
+    document.getElementById('status-feet').innerHTML = (feetVisible ? '<span style="color: var(--success);">✓</span>' : '<span style="opacity: 0.5;">⚪</span>') + ' Feet visible';
+    document.getElementById('status-distance').innerHTML = (distanceOK ? '<span style="color: var(--success);">✓</span>' : '<span style="opacity: 0.5;">⚪</span>') + ' Distance OK';
+    
+    // Enable recording if all aligned
+    const allAligned = headVisible && feetVisible && distanceOK;
+    document.getElementById('start-recording').disabled = !allAligned;
+    if (allAligned) {
+      document.getElementById('start-recording').style.background = 'var(--danger)';
+    }
+  }, 500);
+}
+
+document.getElementById('start-recording').addEventListener('click', () => {
+  recordedChunks = [];
+  const video = document.getElementById('camera-preview');
+  
+  // Setup MediaRecorder
+  mediaRecorder = new MediaRecorder(cameraStream, { 
+    mimeType: 'video/webm;codecs=vp9',
+    videoBitsPerSecond: 2500000 
+  });
+  
+  mediaRecorder.ondataavailable = (event) => {
+    if (event.data.size > 0) recordedChunks.push(event.data);
+  };
+  
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+    const url = URL.createObjectURL(blob);
+    loadVideoFromBlob(blob, url);
+    stopCamera();
+    document.getElementById('record-mode').classList.add('hidden');
+  };
+  
+  // Start recording
+  mediaRecorder.start();
+  document.getElementById('start-recording').disabled = true;
+  document.getElementById('recording-progress').classList.remove('hidden');
+  
+  // 10 second countdown
+  let remaining = 10;
+  const countdownInterval = setInterval(() => {
+    remaining--;
+    document.getElementById('record-timer').textContent = remaining + 's';
+    document.getElementById('record-progress').style.width = ((10 - remaining) / 10 * 100) + '%';
+    
+    if (remaining <= 0) {
+      clearInterval(countdownInterval);
+      mediaRecorder.stop();
+      document.getElementById('recording-progress').classList.add('hidden');
+      document.getElementById('record-progress').style.width = '0%';
+    }
+  }, 1000);
+});
+
+function stopCamera() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+  }
+  if (alignmentCheckInterval) {
+    clearInterval(alignmentCheckInterval);
+    alignmentCheckInterval = null;
+  }
+  document.getElementById('start-camera').disabled = false;
+  document.getElementById('start-camera').textContent = 'Start Camera';
+}
+
+function loadVideoFromBlob(blob, url) {
+  state.videoFile = new File([blob], 'recorded-swing.webm', { type: 'video/webm' });
+  state.videoUrl = url;
+  const v = document.getElementById('loaded-video');
+  v.src = url;
+  v.onloadedmetadata = () => {
+    state.duration = v.duration;
+    state.width = v.videoWidth;
+    state.height = v.videoHeight;
+    const realDuration = state.duration / state.slowMoFactor;
+    document.getElementById('video-meta').innerHTML = `
+      <div class="metric-tile"><div class="label">File duration</div><div class="value">${state.duration.toFixed(1)}<span class="unit">s</span></div></div>
+      <div class="metric-tile"><div class="label">Real-time</div><div class="value">${realDuration.toFixed(2)}<span class="unit">s</span></div></div>
+      <div class="metric-tile"><div class="label">Resolution</div><div class="value" style="font-size: 16px;">${state.width}×${state.height}</div></div>
+    `;
+    document.getElementById('video-preview').classList.remove('hidden');
+    document.getElementById('goto-analyze').disabled = false;
+  };
+}
+
+// STEP 3
+async function runAnalysis() {
+  const canvas = document.getElementById('analysis-canvas');
+  canvas.width = state.width;
+  canvas.height = state.height;
+  const ctx = canvas.getContext('2d');
+
+  state.poseFrames = [];
+  const v = document.createElement('video');
+  v.src = state.videoUrl;
+  v.muted = true;
+  v.playsInline = true;
+  await new Promise(r => v.onloadedmetadata = r);
+
+  const sampleRate = 30;
+  const totalFrames = Math.floor(state.duration * sampleRate);
+  const step = 1 / sampleRate;
+  let timestamp = 0;
+
+  for (let i = 0; i < totalFrames; i++) {
+    const t = i * step;
+    v.currentTime = t;
+    await new Promise(r => v.onseeked = r);
+    ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+    timestamp += 33;
+    const result = state.landmarker.detectForVideo(canvas, timestamp);
+    if (result.landmarks && result.landmarks.length > 0) {
+      const lms = result.landmarks[0].map(l => ({ x: l.x, y: l.y, z: l.z, v: l.visibility !== undefined ? l.visibility : 1 }));
+      state.poseFrames.push({ t, tReal: t / state.slowMoFactor, landmarks: lms });
+      drawPoseOverlay(ctx, lms, canvas.width, canvas.height);
+    }
+    const pct = ((i + 1) / totalFrames) * 100;
+    document.getElementById('progress-bar').style.width = pct + '%';
+    document.getElementById('progress-text').textContent = `${i + 1} / ${totalFrames}`;
+  }
+
+  if (state.poseFrames.length < 5) throw new Error(`Only ${state.poseFrames.length} frames had detectable poses.`);
+
+  detectKeyFrames();
+  drawMotionTimeline();
+  renderKeyFrames();
+  computeMetrics();
+  document.getElementById('goto-feedback').disabled = false;
+}
+
+function drawPoseOverlay(ctx, lms, w, h) {
+  const connections = [
+    [KP.leftShoulder, KP.rightShoulder], [KP.leftShoulder, KP.leftElbow], [KP.leftElbow, KP.leftWrist],
+    [KP.rightShoulder, KP.rightElbow], [KP.rightElbow, KP.rightWrist],
+    [KP.leftShoulder, KP.leftHip], [KP.rightShoulder, KP.rightHip], [KP.leftHip, KP.rightHip],
+    [KP.leftHip, KP.leftKnee], [KP.leftKnee, KP.leftAnkle],
+    [KP.rightHip, KP.rightKnee], [KP.rightKnee, KP.rightAnkle]
+  ];
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(99, 153, 34, 0.9)';
+  for (const [a, b] of connections) {
+    const la = lms[a], lb = lms[b];
+    if (la && lb && la.v > 0.3 && lb.v > 0.3) {
+      ctx.beginPath();
+      ctx.moveTo(la.x * w, la.y * h);
+      ctx.lineTo(lb.x * w, lb.y * h);
+      ctx.stroke();
+    }
+  }
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+  for (const l of lms) {
+    if (l.v > 0.3) {
+      ctx.beginPath();
+      ctx.arc(l.x * w, l.y * h, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+function detectKeyFrames() {
+  const lead = state.handedness === 'right' ? KP.leftWrist : KP.rightWrist;
+  const frames = state.poseFrames;
+  const N = frames.length;
+
+  const speeds = new Array(N).fill(0);
+  for (let i = 1; i < N; i++) {
+    const a = frames[i - 1].landmarks[lead], b = frames[i].landmarks[lead];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    speeds[i] = Math.sqrt(dx * dx + dy * dy);
+  }
+  const smoothSpeed = new Array(N).fill(0);
+  for (let i = 0; i < N; i++) {
+    let sum = 0, count = 0;
+    for (let k = -1; k <= 1; k++) if (i + k >= 0 && i + k < N) { sum += speeds[i + k]; count++; }
+    smoothSpeed[i] = sum / count;
+  }
+  state._smoothSpeed = smoothSpeed;
+
+  let topIdx = 0, topY = 1;
+  for (let i = 0; i < N; i++) {
+    const y = frames[i].landmarks[lead].y;
+    if (y < topY) { topY = y; topIdx = i; }
+  }
+
+  let impactIdx = topIdx, maxSpeed = 0;
+  for (let i = topIdx + 1; i < N; i++) {
+    const wristY = frames[i].landmarks[lead].y;
+    if (smoothSpeed[i] > maxSpeed && wristY > topY + 0.3) { maxSpeed = smoothSpeed[i]; impactIdx = i; }
+  }
+  if (impactIdx === topIdx) {
+    let lowestY = topY;
+    for (let i = topIdx + 1; i < N; i++) if (frames[i].landmarks[lead].y > lowestY) { lowestY = frames[i].landmarks[lead].y; impactIdx = i; }
+  }
+
+  const swingSpeeds = smoothSpeed.slice(topIdx, impactIdx + 1).filter(s => s > 0).sort((a, b) => a - b);
+  const medianSwingSpeed = swingSpeeds[Math.floor(swingSpeeds.length / 2)] || 0.01;
+  const quietThreshold = medianSwingSpeed * 0.2;
+
+  let takeawayIdx = topIdx;
+  for (let i = topIdx - 1; i >= 0; i--) {
+    if (smoothSpeed[i] > quietThreshold) takeawayIdx = i;
+    else {
+      let quietRun = 0;
+      for (let j = i; j >= 0 && smoothSpeed[j] <= quietThreshold; j--) quietRun++;
+      if (quietRun >= Math.max(3, Math.floor(0.15 * 30))) { takeawayIdx = i + 1; break; }
+    }
+  }
+  const setupIdx = Math.max(0, takeawayIdx - 1);
+  const realPerFrame = 1 / 30 / state.slowMoFactor;
+  const framesFor04s = Math.max(3, Math.round(0.4 / realPerFrame));
+  const followIdx = Math.min(N - 1, impactIdx + framesFor04s);
+
+  state.keyFrames = {
+    setup: { idx: setupIdx, frame: frames[setupIdx] },
+    top: { idx: topIdx, frame: frames[topIdx] },
+    impact: { idx: impactIdx, frame: frames[impactIdx] },
+    follow: { idx: followIdx, frame: frames[followIdx] }
+  };
+}
+
+function drawMotionTimeline() {
+  document.getElementById('motion-timeline').classList.remove('hidden');
+  const c = document.getElementById('motion-canvas');
+  const W = c.width, H = c.height;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  const speed = state._smoothSpeed, N = speed.length;
+  const maxSpeed = Math.max(...speed) || 1;
+
+  ctx.fillStyle = 'rgba(120,120,120,0.06)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(99, 153, 34, 0.9)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i < N; i++) {
+    const x = (i / (N - 1)) * W;
+    const y = H - 4 - (speed[i] / maxSpeed) * (H - 12);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  const colors = { setup: '#185FA5', top: '#BA7517', impact: '#A32D2D', follow: '#3B6D11' };
+  const labels = { setup: 'Setup', top: 'Top', impact: 'Impact', follow: 'Follow' };
+  ['setup', 'top', 'impact', 'follow'].forEach(key => {
+    const idx = state.keyFrames[key].idx;
+    const x = (idx / (N - 1)) * W;
+    ctx.strokeStyle = colors[key];
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, H);
+    ctx.stroke();
+  });
+
+  document.getElementById('motion-legend').innerHTML = ['setup', 'top', 'impact', 'follow'].map(key => `
+    <span><span style="display: inline-block; width: 8px; height: 8px; background: ${colors[key]}; vertical-align: middle; margin-right: 4px;"></span>${labels[key]} · ${state.keyFrames[key].frame.tReal.toFixed(2)}s</span>
+  `).join('');
+  
+  // Setup manual override toggle
+  const manualMarks = { setup: null, top: null, impact: null, follow: null };
+  
+  document.getElementById('toggle-manual').onclick = () => {
+    const controls = document.getElementById('manual-controls');
+    const btn = document.getElementById('toggle-manual');
+    const isHidden = controls.classList.contains('hidden');
+    controls.classList.toggle('hidden');
+    btn.textContent = isHidden ? 'Disable' : 'Enable';
+    
+    if (isHidden) {
+      const scrubVideo = document.getElementById('scrub-video');
+      scrubVideo.src = state.videoUrl;
+      scrubVideo.onloadedmetadata = () => {
+        // Set slider max values to video duration
+        ['setup', 'top', 'impact', 'follow'].forEach(key => {
+          const slider = document.getElementById(`slider-${key}`);
+          slider.max = scrubVideo.duration;
+          slider.value = state.keyFrames[key].frame.t; // Initialize to auto-detected time
+          document.getElementById(`${key}-time`).textContent = state.keyFrames[key].frame.tReal.toFixed(2) + 's';
+        });
+      };
+      
+      // Slider event handlers - update video position and time display
+      ['setup', 'top', 'impact', 'follow'].forEach(key => {
+        const slider = document.getElementById(`slider-${key}`);
+        slider.oninput = () => {
+          const t = parseFloat(slider.value);
+          scrubVideo.currentTime = t;
+          const tReal = t / state.slowMoFactor;
+          document.getElementById(`${key}-time`).textContent = tReal.toFixed(2) + 's';
+        };
+      });
+      
+      // Apply button - find closest pose frames and update metrics
+      document.getElementById('apply-manual').onclick = () => {
+        ['setup', 'top', 'impact', 'follow'].forEach(key => {
+          const t = parseFloat(document.getElementById(`slider-${key}`).value);
+          const tReal = t / state.slowMoFactor;
+          
+          // Find closest detected pose frame
+          let closestIdx = 0;
+          let minDiff = Infinity;
+          state.poseFrames.forEach((f, i) => {
+            const diff = Math.abs(f.tReal - tReal);
+            if (diff < minDiff) { minDiff = diff; closestIdx = i; }
+          });
+          
+          manualMarks[key] = closestIdx;
+          state.keyFrames[key] = { idx: closestIdx, frame: state.poseFrames[closestIdx] };
+        });
+        
+        // Redraw everything with new key frames
+        drawMotionTimeline();
+        renderKeyFrames();
+        computeMetrics();
+        
+        document.getElementById('manual-status').textContent = '✓ All key frames updated. Metrics recalculated.';
+      };
+    }
+  };
+  
+  // Manual marking buttons
+  ['setup', 'top', 'impact', 'follow'].forEach(key => {
+    const btn = document.getElementById(`mark-${key}`);
+    if (btn) {
+      btn.onclick = () => {
+        const scrubVideo = document.getElementById('scrub-video');
+        const t = scrubVideo.currentTime;
+        const tReal = t / state.slowMoFactor;
+        
+        let closestIdx = 0;
+        let minDiff = Infinity;
+        state.poseFrames.forEach((f, i) => {
+          const diff = Math.abs(f.tReal - tReal);
+          if (diff < minDiff) { minDiff = diff; closestIdx = i; }
+        });
+        
+        manualMarks[key] = closestIdx;
+        state.keyFrames[key] = { idx: closestIdx, frame: state.poseFrames[closestIdx] };
+        
+        drawMotionTimeline();
+        renderKeyFrames();
+        computeMetrics();
+      };
+    }
+  });
+}
+
+function renderKeyFrames() {
+  const grid = document.getElementById('key-frames-grid');
+  grid.innerHTML = '';
+  const labels = { setup: 'Setup', top: 'Top of backswing', impact: 'Impact', follow: 'Follow-through' };
+  ['setup', 'top', 'impact', 'follow'].forEach(key => {
+    const kf = state.keyFrames[key];
+    const div = document.createElement('div');
+    div.className = 'key-frame-thumb';
+    const c = document.createElement('canvas');
+    c.width = 280;
+    c.height = Math.round(280 * state.height / state.width);
+    div.appendChild(c);
+    const lbl = document.createElement('div');
+    lbl.className = 'label';
+    lbl.textContent = `${labels[key]} · ${kf.frame.tReal.toFixed(2)}s`;
+    div.appendChild(lbl);
+    grid.appendChild(div);
+
+    const tmpV = document.createElement('video');
+    tmpV.src = state.videoUrl;
+    tmpV.muted = true;
+    tmpV.onloadedmetadata = () => {
+      tmpV.currentTime = kf.frame.t;
+      tmpV.onseeked = () => {
+        const tctx = c.getContext('2d');
+        tctx.drawImage(tmpV, 0, 0, c.width, c.height);
+        drawPoseOverlay(tctx, kf.frame.landmarks, c.width, c.height);
+        kf.imageDataURL = c.toDataURL('image/jpeg', 0.7);
+      };
+    };
+  });
+  document.getElementById('key-frames').classList.remove('hidden');
+}
+
+function angleAt(p1, p2, p3) {
+  const v1x = p1.x - p2.x, v1y = p1.y - p2.y, v2x = p3.x - p2.x, v2y = p3.y - p2.y;
+  const dot = v1x * v2x + v1y * v2y;
+  const m1 = Math.sqrt(v1x * v1x + v1y * v1y), m2 = Math.sqrt(v2x * v2x + v2y * v2y);
+  return Math.acos(Math.max(-1, Math.min(1, dot / (m1 * m2)))) * 180 / Math.PI;
+}
+function lineAng(p1, p2) { return Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI; }
+function dist(p1, p2) { return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2); }
+
+function computeMetrics() {
+  const kf = state.keyFrames;
+  const m = {};
+  m.backswingTime = kf.top.frame.tReal - kf.setup.frame.tReal;
+  m.downswingTime = kf.impact.frame.tReal - kf.top.frame.tReal;
+  m.tempoRatio = m.downswingTime > 0 ? m.backswingTime / m.downswingTime : 0;
+
+  const topLm = kf.top.frame.landmarks, setupLm = kf.setup.frame.landmarks, impactLm = kf.impact.frame.landmarks;
+
+  let shoulderTurn = Math.abs(lineAng(topLm[KP.leftShoulder], topLm[KP.rightShoulder]) - lineAng(setupLm[KP.leftShoulder], setupLm[KP.rightShoulder]));
+  if (shoulderTurn > 180) shoulderTurn = 360 - shoulderTurn;
+  m.shoulderTurn = shoulderTurn;
+
+  let hipTurn = Math.abs(lineAng(topLm[KP.leftHip], topLm[KP.rightHip]) - lineAng(setupLm[KP.leftHip], setupLm[KP.rightHip]));
+  if (hipTurn > 180) hipTurn = 360 - hipTurn;
+  m.hipTurn = hipTurn;
+  m.xFactor = Math.max(0, m.shoulderTurn - m.hipTurn);
+
+  const shoulderW = dist(setupLm[KP.leftShoulder], setupLm[KP.rightShoulder]);
+  m.headMoveSetupToTop = dist(setupLm[KP.nose], topLm[KP.nose]) / shoulderW;
+  m.headMoveTopToImpact = dist(topLm[KP.nose], impactLm[KP.nose]) / shoulderW;
+
+  const midShoulderSetup = { x: (setupLm[KP.leftShoulder].x + setupLm[KP.rightShoulder].x) / 2, y: (setupLm[KP.leftShoulder].y + setupLm[KP.rightShoulder].y) / 2 };
+  const midHipSetup = { x: (setupLm[KP.leftHip].x + setupLm[KP.rightHip].x) / 2, y: (setupLm[KP.leftHip].y + setupLm[KP.rightHip].y) / 2 };
+  m.spineAngleAtAddress = Math.abs(Math.atan2(midShoulderSetup.x - midHipSetup.x, -(midShoulderSetup.y - midHipSetup.y)) * 180 / Math.PI);
+
+  const lead = state.handedness === 'right' ? [KP.leftShoulder, KP.leftElbow, KP.leftWrist] : [KP.rightShoulder, KP.rightElbow, KP.rightWrist];
+  m.leadArmAngleAtTop = angleAt(topLm[lead[0]], topLm[lead[1]], topLm[lead[2]]);
+
+  const midHipImpact = { x: (impactLm[KP.leftHip].x + impactLm[KP.rightHip].x) / 2 };
+  m.hipLateralShift = (midHipImpact.x - midHipSetup.x) / shoulderW;
+
+  state.metrics = m;
+  runSanityChecks(m);
+  renderMetrics(m);
+  generateDebugInfo(setupLm, topLm, impactLm);
+}
+
+function generateDebugInfo(setupLm, topLm, impactLm) {
+  const debug = [];
+  
+  debug.push('<strong>KEYPOINT VISIBILITY (Setup → Top)</strong>');
+  debug.push('Left shoulder:  ' + setupLm[KP.leftShoulder].v.toFixed(2) + ' → ' + topLm[KP.leftShoulder].v.toFixed(2));
+  debug.push('Right shoulder: ' + setupLm[KP.rightShoulder].v.toFixed(2) + ' → ' + topLm[KP.rightShoulder].v.toFixed(2));
+  debug.push('Left hip:       ' + setupLm[KP.leftHip].v.toFixed(2) + ' → ' + topLm[KP.leftHip].v.toFixed(2));
+  debug.push('Right hip:      ' + setupLm[KP.rightHip].v.toFixed(2) + ' → ' + topLm[KP.rightHip].v.toFixed(2));
+  debug.push('');
+  
+  debug.push('<strong>RAW COORDINATES (normalized 0-1)</strong>');
+  debug.push('SETUP:');
+  debug.push('  L shoulder: (' + setupLm[KP.leftShoulder].x.toFixed(3) + ', ' + setupLm[KP.leftShoulder].y.toFixed(3) + ')');
+  debug.push('  R shoulder: (' + setupLm[KP.rightShoulder].x.toFixed(3) + ', ' + setupLm[KP.rightShoulder].y.toFixed(3) + ')');
+  debug.push('  L hip:      (' + setupLm[KP.leftHip].x.toFixed(3) + ', ' + setupLm[KP.leftHip].y.toFixed(3) + ')');
+  debug.push('  R hip:      (' + setupLm[KP.rightHip].x.toFixed(3) + ', ' + setupLm[KP.rightHip].y.toFixed(3) + ')');
+  debug.push('');
+  debug.push('TOP OF BACKSWING:');
+  debug.push('  L shoulder: (' + topLm[KP.leftShoulder].x.toFixed(3) + ', ' + topLm[KP.leftShoulder].y.toFixed(3) + ')');
+  debug.push('  R shoulder: (' + topLm[KP.rightShoulder].x.toFixed(3) + ', ' + topLm[KP.rightShoulder].y.toFixed(3) + ')');
+  debug.push('  L hip:      (' + topLm[KP.leftHip].x.toFixed(3) + ', ' + topLm[KP.leftHip].y.toFixed(3) + ')');
+  debug.push('  R hip:      (' + topLm[KP.rightHip].x.toFixed(3) + ', ' + topLm[KP.rightHip].y.toFixed(3) + ')');
+  debug.push('');
+  
+  const shoulderAngSetup = lineAng(setupLm[KP.leftShoulder], setupLm[KP.rightShoulder]);
+  const shoulderAngTop = lineAng(topLm[KP.leftShoulder], topLm[KP.rightShoulder]);
+  const hipAngSetup = lineAng(setupLm[KP.leftHip], setupLm[KP.rightHip]);
+  const hipAngTop = lineAng(topLm[KP.leftHip], topLm[KP.rightHip]);
+  
+  debug.push('<strong>CALCULATED LINE ANGLES</strong>');
+  debug.push('Shoulder line @ setup: ' + shoulderAngSetup.toFixed(1) + '°');
+  debug.push('Shoulder line @ top:   ' + shoulderAngTop.toFixed(1) + '°');
+  debug.push('→ Shoulder turn: ' + Math.abs(shoulderAngTop - shoulderAngSetup).toFixed(1) + '°');
+  debug.push('');
+  debug.push('Hip line @ setup: ' + hipAngSetup.toFixed(1) + '°');
+  debug.push('Hip line @ top:   ' + hipAngTop.toFixed(1) + '°');
+  debug.push('→ Hip turn: ' + Math.abs(hipAngTop - hipAngSetup).toFixed(1) + '°');
+  debug.push('');
+  
+  debug.push('<strong>INTERPRETATION</strong>');
+  if (setupLm[KP.leftHip].v < 0.5 || setupLm[KP.rightHip].v < 0.5 || topLm[KP.leftHip].v < 0.5 || topLm[KP.rightHip].v < 0.5) {
+    debug.push('⚠️ Hip visibility below 0.5 — pose detection unreliable');
+  }
+  const hipCoordChange = Math.abs((topLm[KP.leftHip].x - topLm[KP.rightHip].x) - (setupLm[KP.leftHip].x - setupLm[KP.rightHip].x));
+  if (hipCoordChange < 0.02) {
+    debug.push('⚠️ Hip x-coordinates barely changed (' + (hipCoordChange * 100).toFixed(1) + '%) — camera angle may be wrong or detection failed');
+  }
+  
+  document.getElementById('debug-panel').innerHTML = debug.join('<br>');
+}
+
+function runSanityChecks(m) {
+  const issues = [];
+  if (m.backswingTime > 2.0) issues.push({ key: 'backswing', msg: `Backswing ${m.backswingTime.toFixed(2)}s unusually long.` });
+  if (m.backswingTime < 0.3) issues.push({ key: 'backswing', msg: `Backswing ${m.backswingTime.toFixed(2)}s unusually short.` });
+  if (m.downswingTime > 1.0) issues.push({ key: 'downswing', msg: `Downswing ${m.downswingTime.toFixed(2)}s long.` });
+  if (m.downswingTime < 0.1) issues.push({ key: 'downswing', msg: `Downswing ${m.downswingTime.toFixed(2)}s short.` });
+  if (m.shoulderTurn > 130) issues.push({ key: 'shoulder', msg: `Shoulder turn ${Math.round(m.shoulderTurn)}° exceeds max.` });
+  if (m.hipTurn < 10) issues.push({ key: 'hip', msg: `Hip turn ${Math.round(m.hipTurn)}° implausibly low.` });
+  if (m.xFactor > 80) issues.push({ key: 'xfactor', msg: `X-factor ${Math.round(m.xFactor)}° implausible.` });
+  if (m.leadArmAngleAtTop < 90) issues.push({ key: 'leadarm', msg: `Lead arm ${Math.round(m.leadArmAngleAtTop)}° suggests error.` });
+  state.sanityIssues = issues;
+}
+
+function renderMetrics(m) {
+  const flag = (key) => state.sanityIssues.some(i => i.key === key);
+  const tiles = [
+    { label: 'Tempo ratio', value: m.tempoRatio.toFixed(2), unit: ': 1', key: null },
+    { label: 'Backswing', value: m.backswingTime.toFixed(2), unit: 's', key: 'backswing' },
+    { label: 'Downswing', value: m.downswingTime.toFixed(2), unit: 's', key: 'downswing' },
+    { label: 'Shoulder turn', value: Math.round(m.shoulderTurn), unit: '°', key: 'shoulder' },
+    { label: 'Hip turn', value: Math.round(m.hipTurn), unit: '°', key: 'hip' },
+    { label: 'X-factor', value: Math.round(m.xFactor), unit: '°', key: 'xfactor' },
+    { label: 'Spine angle', value: Math.round(m.spineAngleAtAddress), unit: '°', key: null },
+    { label: 'Lead arm @ top', value: Math.round(m.leadArmAngleAtTop), unit: '°', key: 'leadarm' },
+    { label: 'Head movement', value: m.headMoveTopToImpact.toFixed(2), unit: 'sw', key: null }
+  ];
+  document.getElementById('metrics-grid').innerHTML = tiles.map(t => `
+    <div class="metric-tile${t.key && flag(t.key) ? ' suspect' : ''}">
+      <div class="label">${t.label}${t.key && flag(t.key) ? ' ⚠' : ''}</div>
+      <div class="value">${t.value}<span class="unit">${t.unit}</span></div>
+    </div>
+  `).join('');
+
+  document.getElementById('tempo-note').innerHTML = state.captureMode === 'slow-mo'
+    ? `Tempo corrected for ${state.captureFps}fps slow-mo (÷${state.slowMoFactor}).`
+    : `Tempo measured at ${state.captureFps}fps real-time.`;
+
+  const warnDiv = document.getElementById('sanity-warnings');
+  if (state.sanityIssues.length) {
+    warnDiv.classList.remove('hidden');
+    warnDiv.innerHTML = `<div class="alert alert-warning"><strong>Detection issues:</strong><ul style="margin: 6px 0 0; padding-left: 18px;">${state.sanityIssues.map(i => `<li>${i.msg}</li>`).join('')}</ul></div>`;
+  } else {
+    warnDiv.classList.add('hidden');
+  }
+  document.getElementById('metrics-card').classList.remove('hidden');
+}
+
+document.getElementById('back-to-capture').addEventListener('click', () => showStep(2));
+document.getElementById('goto-feedback').addEventListener('click', () => { showStep(4); getCoachingFeedback(); });
+
+// STEP 4
+async function getCoachingFeedback() {
+  document.getElementById('feedback-loading').classList.remove('hidden');
+  document.getElementById('feedback-content').classList.add('hidden');
+  await new Promise(r => setTimeout(r, 500));
+
+  const m = state.metrics, kf = state.keyFrames;
+  const captureContext = state.captureMode === 'slow-mo' ? `Slow-mo ${state.captureFps}fps.` : state.captureMode === 'high-fps' ? `60fps.` : `30fps.`;
+  const sanityNote = state.sanityIssues.length ? `\n\nIMPORTANT: Suspect measurements:\n${state.sanityIssues.map(i => '- ' + i.msg).join('\n')}\nDon't give drills for these.` : '';
+  const metricsText = `
+Camera: ${state.cameraAngle}, ${state.club}, ${state.handedness}-handed. ${captureContext}
+Backswing: ${m.backswingTime.toFixed(2)}s | Downswing: ${m.downswingTime.toFixed(2)}s | Tempo: ${m.tempoRatio.toFixed(2)}:1 (target ~3:1)
+Shoulder turn: ${Math.round(m.shoulderTurn)}° (target 80-95°) | Hip turn: ${Math.round(m.hipTurn)}° (target 40-55°) | X-factor: ${Math.round(m.xFactor)}° (target 30-45°)
+Spine: ${Math.round(m.spineAngleAtAddress)}° (target 25-40°) | Lead arm: ${Math.round(m.leadArmAngleAtTop)}°
+Head move: ${m.headMoveTopToImpact.toFixed(2)} sw (target <0.15) | Hip shift: ${m.hipLateralShift.toFixed(2)} sw${sanityNote}`;
+
+  const prompt = `You are an expert golf coach. Be direct, specific, prioritized.\n\n${metricsText}\n\nRespond ONLY with this JSON: {"overall":"<2-3 sentences>","overall_grade":"<Good/Decent/Needs work/Inconclusive>","strengths":["<>","<>"],"priorities":[{"title":"<>","severity":"<minor/moderate/major>","what_i_see":"<reference real metrics>","why_it_matters":"<>","drill":"<>"}],"caveats":"<>"}\nUse "Inconclusive" if data is too suspect.`;
+
+  const content = [{ type: 'text', text: prompt }];
+  for (const key of ['setup', 'top', 'impact', 'follow']) {
+    const kfData = kf[key];
+    if (kfData && kfData.imageDataURL) {
+      content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: kfData.imageDataURL.split(',')[1] } });
+      content.push({ type: 'text', text: `^ Key frame: ${key}` });
+    }
+  }
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1500, messages: [{ role: 'user', content }] })
+    });
+    const data = await response.json();
+    const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
+    renderFeedback(JSON.parse(text.replace(/```json|```/g, '').trim()));
+  } catch (err) {
+    document.getElementById('feedback-loading').innerHTML = `<div class="alert alert-danger">Couldn't generate feedback: ${err.message}</div>`;
+  }
+}
+
+function renderFeedback(fb) {
+  const sevColor = { major: 'grade-bad', moderate: 'grade-ok', minor: 'grade-good' };
+  const gradeColor = { 'Good': 'grade-good', 'Decent': 'grade-ok', 'Needs work': 'grade-bad', 'Inconclusive': 'grade-ok' };
+  const gClass = gradeColor[fb.overall_grade] || 'grade-ok';
+
+  let html = `<div class="feedback-section"><div style="display: flex; align-items: center; margin-bottom: 8px;"><h3>Overall</h3><span class="feedback-grade ${gClass}">${fb.overall_grade}</span></div><p>${fb.overall}</p></div>`;
+
+  if (fb.strengths && fb.strengths.length) {
+    html += `<div class="feedback-section"><h3>Strengths</h3><ul style="margin: 0; padding-left: 20px;">${fb.strengths.map(s => `<li>${s}</li>`).join('')}</ul></div>`;
+  }
+
+  if (fb.priorities && fb.priorities.length) {
+    html += `<div class="feedback-section"><h3>Priorities to fix</h3>`;
+    fb.priorities.forEach((p, i) => {
+      const sClass = sevColor[p.severity] || 'grade-ok';
+      html += `<div style="border-left: 2px solid var(--border); padding-left: 12px; margin-bottom: 16px;"><div style="display: flex; align-items: center; margin-bottom: 6px;"><span style="font-family: 'Courier New', monospace; font-size: 12px; color: var(--text-tertiary); margin-right: 8px;">${String(i + 1).padStart(2, '0')}</span><strong>${p.title}</strong><span class="feedback-grade ${sClass}">${p.severity}</span></div><p style="margin: 0 0 6px;"><span style="color: var(--text-secondary);">What I see:</span> ${p.what_i_see}</p><p style="margin: 0 0 6px;"><span style="color: var(--text-secondary);">Why it matters:</span> ${p.why_it_matters}</p><p style="margin: 0;"><span style="color: var(--text-secondary);">Drill:</span> ${p.drill}</p></div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (fb.caveats) {
+    html += `<div class="feedback-section alert alert-warning"><strong>Caveat:</strong> ${fb.caveats}</div>`;
+  }
+
+  document.getElementById('feedback-content').innerHTML = html;
+  document.getElementById('feedback-loading').classList.add('hidden');
+  document.getElementById('feedback-content').classList.remove('hidden');
+}
+
+document.getElementById('restart').addEventListener('click', () => {
+  state.poseFrames = [];
+  state.keyFrames = {};
+  state.metrics = {};
+  state.sanityIssues = [];
+  state.videoFile = null;
+  if (state.videoUrl) { URL.revokeObjectURL(state.videoUrl); state.videoUrl = null; }
+  document.getElementById('video-preview').classList.add('hidden');
+  document.getElementById('motion-timeline').classList.add('hidden');
+  document.getElementById('key-frames').classList.add('hidden');
+  document.getElementById('metrics-card').classList.add('hidden');
+  document.getElementById('analysis-error').classList.add('hidden');
+  document.getElementById('goto-analyze').disabled = true;
+  document.getElementById('goto-feedback').disabled = true;
+  document.getElementById('progress-bar').style.width = '0%';
+  document.getElementById('progress-text').textContent = '0 / 0';
+  showStep(1);
+});
+</script>
+
+</body>
+</html>
