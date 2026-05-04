@@ -746,7 +746,7 @@ function startAlignmentCheck() {
   const canvas = document.getElementById('alignment-canvas');
   const ctx = canvas.getContext('2d');
   
-  // Draw clean alignment guide for side profile (face-on view)
+  // Draw bold, high-contrast alignment guide
   function drawGuide() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
@@ -754,137 +754,183 @@ function startAlignmentCheck() {
     const H = canvas.height;
     const isPortrait = H > W;
     
-    // Adjust positioning based on orientation
-    const centerX = W * 0.5;
-    const targetWidth = isPortrait ? W * 0.08 : W * 0.12; // Smaller for portrait
+    // Position golfer silhouette offset (ball will be in center, golfer to the side)
+    const golferX = W * 0.4; // Golfer positioned left of center
+    const ballX = W * 0.55;   // Ball slightly right of center
     
-    // Person proportions (realistic human body)
-    const headRadius = targetWidth * 0.6;
+    const targetWidth = isPortrait ? W * 0.09 : W * 0.13;
+    
+    // Realistic human proportions
+    const headRadius = targetWidth * 0.65;
     const headY = H * 0.15;
-    const neckY = headY + headRadius + 10;
-    const shoulderY = neckY + 20;
-    const hipY = shoulderY + H * 0.20;
-    const kneeY = hipY + H * 0.20;
-    const feetY = H * 0.85;
+    const neckY = headY + headRadius + 8;
+    const shoulderY = neckY + 18;
+    const hipY = shoulderY + H * 0.18;
+    const kneeY = hipY + H * 0.18;
+    const feetY = H * 0.82;
     
-    // Draw minimal overlay hints (corner guides instead of full overlay)
-    ctx.strokeStyle = 'rgba(99, 153, 34, 0.6)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([8, 4]);
+    // Helper function for outlined strokes (white with black outline)
+    function drawOutlinedLine(fromX, fromY, toX, toY, thickness = 5) {
+      // Black outline
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = thickness + 4;
+      ctx.beginPath();
+      ctx.moveTo(fromX, fromY);
+      ctx.lineTo(toX, toY);
+      ctx.stroke();
+      
+      // White line
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = thickness;
+      ctx.beginPath();
+      ctx.moveTo(fromX, fromY);
+      ctx.lineTo(toX, toY);
+      ctx.stroke();
+    }
     
-    // Top frame boundary
-    ctx.beginPath();
-    ctx.moveTo(W * 0.2, H * 0.10);
-    ctx.lineTo(W * 0.8, H * 0.10);
-    ctx.stroke();
+    function drawOutlinedCircle(x, y, radius, fill = false) {
+      // Black outline
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.stroke();
+      if (fill) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.fill();
+      }
+      
+      // White circle
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.stroke();
+      if (fill) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.fill();
+      }
+    }
     
-    // Bottom frame boundary
-    ctx.beginPath();
-    ctx.moveTo(W * 0.2, H * 0.90);
-    ctx.lineTo(W * 0.8, H * 0.90);
-    ctx.stroke();
+    // === GOLFER SILHOUETTE ===
     
-    ctx.setLineDash([]);
-    
-    // Draw precise silhouette guide in center
-    ctx.strokeStyle = '#639922';
-    ctx.fillStyle = 'rgba(99, 153, 34, 0.2)';
-    ctx.lineWidth = 2.5;
-    
-    // Head (circle)
-    ctx.beginPath();
-    ctx.arc(centerX, headY, headRadius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
+    // Head
+    drawOutlinedCircle(golferX, headY, headRadius, true);
     
     // Neck
-    ctx.beginPath();
-    ctx.moveTo(centerX, headY + headRadius);
-    ctx.lineTo(centerX, neckY);
-    ctx.stroke();
+    drawOutlinedLine(golferX, headY + headRadius, golferX, neckY);
     
-    // Shoulders (horizontal line with small endpoints)
-    ctx.beginPath();
-    ctx.moveTo(centerX - targetWidth, shoulderY);
-    ctx.lineTo(centerX + targetWidth, shoulderY);
-    ctx.stroke();
+    // Shoulders (horizontal line with endpoint markers)
+    drawOutlinedLine(golferX - targetWidth, shoulderY, golferX + targetWidth, shoulderY, 6);
+    drawOutlinedCircle(golferX - targetWidth, shoulderY, 7, true);
+    drawOutlinedCircle(golferX + targetWidth, shoulderY, 7, true);
     
-    // Small circles at shoulder endpoints
-    ctx.beginPath();
-    ctx.arc(centerX - targetWidth, shoulderY, 4, 0, Math.PI * 2);
-    ctx.arc(centerX + targetWidth, shoulderY, 4, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Torso (clean trapezoid)
-    ctx.beginPath();
-    ctx.moveTo(centerX - targetWidth, shoulderY);
-    ctx.lineTo(centerX - targetWidth * 0.7, hipY);
-    ctx.lineTo(centerX + targetWidth * 0.7, hipY);
-    ctx.lineTo(centerX + targetWidth, shoulderY);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    
-    // Hips (horizontal line)
-    ctx.beginPath();
-    ctx.moveTo(centerX - targetWidth * 0.7, hipY);
-    ctx.lineTo(centerX + targetWidth * 0.7, hipY);
-    ctx.stroke();
-    
-    // Left leg (clean line with knee joint)
-    ctx.beginPath();
-    ctx.moveTo(centerX - targetWidth * 0.35, hipY);
-    ctx.lineTo(centerX - targetWidth * 0.45, kneeY);
-    ctx.lineTo(centerX - targetWidth * 0.5, feetY);
-    ctx.stroke();
-    
-    // Knee joint marker
-    ctx.beginPath();
-    ctx.arc(centerX - targetWidth * 0.45, kneeY, 3, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Right leg
-    ctx.beginPath();
-    ctx.moveTo(centerX + targetWidth * 0.35, hipY);
-    ctx.lineTo(centerX + targetWidth * 0.45, kneeY);
-    ctx.lineTo(centerX + targetWidth * 0.5, feetY);
-    ctx.stroke();
-    
-    // Knee joint marker
-    ctx.beginPath();
-    ctx.arc(centerX + targetWidth * 0.45, kneeY, 3, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Foot markers
-    ctx.beginPath();
-    ctx.arc(centerX - targetWidth * 0.5, feetY, 5, 0, Math.PI * 2);
-    ctx.arc(centerX + targetWidth * 0.5, feetY, 5, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Labels (compact, positioned to the side)
-    ctx.fillStyle = '#639922';
-    ctx.font = 'bold 12px sans-serif';
-    ctx.textAlign = 'left';
-    
-    const labelX = centerX + targetWidth + 15;
-    ctx.fillText('HEAD', labelX, headY);
-    ctx.fillText('SHOULDERS', labelX, shoulderY);
-    ctx.fillText('HIPS', labelX, hipY);
-    ctx.fillText('FEET', labelX, feetY);
-    
-    // Main instruction at top (smaller for mobile)
-    ctx.font = 'bold 14px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#fff';
+    // Torso (outlined trapezoid)
     ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2.5;
-    ctx.strokeText('Stand sideways, full body visible', centerX, 25);
-    ctx.fillText('Stand sideways, full body visible', centerX, 25);
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(golferX - targetWidth, shoulderY);
+    ctx.lineTo(golferX - targetWidth * 0.7, hipY);
+    ctx.lineTo(golferX + targetWidth * 0.7, hipY);
+    ctx.lineTo(golferX + targetWidth, shoulderY);
+    ctx.closePath();
+    ctx.stroke();
     
-    // Distance guide at bottom
-    ctx.font = '11px sans-serif';
-    ctx.fillStyle = '#639922';
-    ctx.fillText('2-3m from camera', centerX, H - 15);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(golferX - targetWidth, shoulderY);
+    ctx.lineTo(golferX - targetWidth * 0.7, hipY);
+    ctx.lineTo(golferX + targetWidth * 0.7, hipY);
+    ctx.lineTo(golferX + targetWidth, shoulderY);
+    ctx.closePath();
+    ctx.stroke();
+    
+    // Hips line
+    drawOutlinedLine(golferX - targetWidth * 0.7, hipY, golferX + targetWidth * 0.7, hipY, 5);
+    
+    // Left leg with knee marker
+    drawOutlinedLine(golferX - targetWidth * 0.35, hipY, golferX - targetWidth * 0.45, kneeY, 5);
+    drawOutlinedCircle(golferX - targetWidth * 0.45, kneeY, 6, true);
+    drawOutlinedLine(golferX - targetWidth * 0.45, kneeY, golferX - targetWidth * 0.5, feetY, 5);
+    
+    // Right leg with knee marker
+    drawOutlinedLine(golferX + targetWidth * 0.35, hipY, golferX + targetWidth * 0.45, kneeY, 5);
+    drawOutlinedCircle(golferX + targetWidth * 0.45, kneeY, 6, true);
+    drawOutlinedLine(golferX + targetWidth * 0.45, kneeY, golferX + targetWidth * 0.5, feetY, 5);
+    
+    // Foot markers (larger circles)
+    drawOutlinedCircle(golferX - targetWidth * 0.5, feetY, 9, true);
+    drawOutlinedCircle(golferX + targetWidth * 0.5, feetY, 9, true);
+    
+    // === BALL POSITION ===
+    
+    // Ball on ground (bright yellow/white with thick outline)
+    const ballY = feetY - 5; // Just in front of feet
+    const ballRadius = isPortrait ? 18 : 22;
+    
+    // Black shadow/outline
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.beginPath();
+    ctx.arc(ballX, ballY, ballRadius + 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Yellow ball
+    ctx.fillStyle = '#FFD700';
+    ctx.beginPath();
+    ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // White highlight
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(ballX - 5, ballY - 5, 6, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // White outline
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Alignment line from ball to target (dashed line going forward)
+    ctx.setLineDash([10, 10]);
+    ctx.strokeStyle = '#FFD700';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(ballX, ballY);
+    ctx.lineTo(ballX + W * 0.3, ballY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // === LABELS ===
+    
+    // Helper for outlined text
+    function drawLabel(text, x, y, size = 14) {
+      ctx.font = `bold ${size}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 4;
+      ctx.strokeText(text, x, y);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(text, x, y);
+    }
+    
+    drawLabel('YOU', golferX, headY - headRadius - 15, 16);
+    drawLabel('BALL', ballX, ballY + ballRadius + 25, 16);
+    
+    // Main instruction at top
+    drawLabel('Stand sideways • Ball in front of you', W / 2, 28, 15);
+    
+    // Distance instruction at bottom
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 3;
+    ctx.strokeText('2-3 meters from camera', W / 2, H - 18);
+    ctx.fillStyle = '#FFD700';
+    ctx.fillText('2-3 meters from camera', W / 2, H - 18);
   }
   
   drawGuide();
@@ -908,10 +954,10 @@ function startAlignmentCheck() {
                     lms[KP.leftAnkle].y > 0.7 && lms[KP.leftAnkle].y < 0.95 &&
                     lms[KP.rightAnkle].y > 0.7 && lms[KP.rightAnkle].y < 0.95;
       
-      // Check distance (shoulder width should be 8-18% of frame width for good detection)
+      // Check distance (shoulder width should be 8-20% of frame width for good detection)
       if (lms[KP.leftShoulder] && lms[KP.rightShoulder]) {
         const shoulderW = Math.abs(lms[KP.leftShoulder].x - lms[KP.rightShoulder].x);
-        distanceOK = shoulderW > 0.08 && shoulderW < 0.20;
+        distanceOK = shoulderW > 0.08 && shoulderW < 0.22;
       }
     }
     
